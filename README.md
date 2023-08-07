@@ -10,4 +10,7 @@ Specifically we focus on two regression tasks and one classification task:
 
 * Hydration Free Energy (HFE) - Regresion
 * Lipophilicity (LIPO) - Regression
-* Membrane Permeability (MP) - Classification 
+* Membrane Permeability (MP) - Classification
+
+
+NOTE:: processing LIPO and MP produce files too large for git to push so they should be run remotely 
