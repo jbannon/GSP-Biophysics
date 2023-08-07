@@ -1,0 +1,8 @@
+dataset: 'Hydration_Free_Energy'
+num_trials: 100
+ds_base: "../data/processed/"
+rngseed: 1234
+feature_type: 'fingerprints'
+score: 'neg_mean_absolute_error'
+exp_type: "regression"
+output_path: "../results"
