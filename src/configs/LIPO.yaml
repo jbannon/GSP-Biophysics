@@ -1,0 +1,63 @@
+DATASET_PARAMS:
+  short_name: 'Lipophilicity'
+  tdc_name: 'Lipophilicity_AstraZeneca'
+  tdc_path: "../data/raw/tdc/"
+  short_size: 32
+  long_size: 1024
+
+
+
+EXPERIMENT_PARAMS:
+  num_trials: 10
+  test_pct: 0.8
+  rngseed: 12345
+  model_name: 'OLS'
+  exp_type: "regression"
+  score: 'neg_mean_absolute_error'
+  output_path: "../results"
+
+
+
+CV_PARAMS:
+  logspace: False
+  alpha_min: 0.01
+  alpha_max: 100
+  num_alphas: 10
+  num_l1s: 10
+  l1_min: 0.01
+  l1_max: 0.99
+
+
+FEATURE_PARAMS:
+  feature_type: 'fingerprints'
+  standardize_feats: True
+  J_v: 2
+  maxMoment_v: 3
+  central_v: False
+  J_e: 2
+  maxMoment_e: 3
+  central_e: False
+
+
+  
+OLS_PARAMS:
+  model_type: 'OLS'
+  names: []
+  mins: []
+  maxs: []
+  steps: []
+  logspaces: []
+
+RIDGE_PARAMS:
+  model_type: 'RIDGE'
+  names: ['alpha']
+  mins: [0.01]
+  maxs: [100]
+  steps: [10]
+  logspaces: [True]
+
+
+
+
+
+

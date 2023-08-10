@@ -1,69 +1,103 @@
+from sklearn.svm import LinearSVR
+from typing import Union, List, Dict, Tuple
 from collections import defaultdict
-from sklearn.model_selection import GridSearchCV
-from sklearn.linear_model import ElasticNet
+import time 
+
+
 import sys 
 import os 
 import argparse
-from sklearn.metrics import mean_absolute_error, mean_squared_error
 import yaml 
-from typing import Union, List, Dict, Tuple
+import tqdm
+
 import numpy as np
 import pickle
-from sklearn.model_selection import LeaveOneOut,GridSearchCV, KFold, StratifiedKFold, train_test_split
 import pandas as pd
-from sklearn.preprocessing import RobustScaler, StandardScaler
-from sklearn.decomposition import PCA
+
+from sklearn.linear_model import Ridge, LinearRegression
+from sklearn.preprocessing import  StandardScaler
+
 from sklearn.pipeline import Pipeline
-import tqdm
-import GraphTransforms
+from sklearn.model_selection import train_test_split,GridSearchCV
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-FINGERPRINT_FEATURES = ['morgan_short','morgan_long','top_short','top_long','bit_short','bit_long']
 
-def make_numpy_dataset(
-	data:Dict,
-	feature_type:str
-	):
-	X, y = [np.array([]) for i in range(2)]
-	if feature_type in FINGERPRINT_FEATURES:
-		for k in data.keys():
-			molecule_data = data[k]
-			X = np.vstack( (X, molecule_data[feature_type])) if X.size else molecule_data[feature_type]
-			y = np.vstack( (y, molecule_data['y'])) if  y.size else np.array(molecule_data['y'])
-	return X, y
+import io_utils, dataset_utils, model_utils
+
+import GraphTransforms as gt
+
+from tdc.single_pred import ADME
+
+
 
 
 def main(
 	config:Dict
 	) -> None:
 	
-	with open(config['ds_base']+config['dataset']+"/processed.pickle",'rb') as f:
-		DS = pickle.load(f)
 	
-	obs_index = list(DS.keys())
-	rng = np.random.RandomState(seed = config['rngseed'])
-	feature_type = config['feature_type']
+	print("\n")
+	short_name, tdc_name, tdc_path, short_size, long_size =  \
+		io_utils.unpack_parameters(config['DATASET_PARAMS'])
+
+	num_trials, test_pct, rngseed, model_name, exp_type, score, output_path = \
+	 	io_utils.unpack_parameters(config['EXPERIMENT_PARAMS'])
+	
+	alpha_logspace, alpha_min, alpha_max, num_alphas, num_l1s, l1_min, l1_max =\
+	 	io_utils.unpack_parameters(config['CV_PARAMS'])
+
+	feature_type, standardize, numScales_v, maxMoment_v, central_v, numScales_e, maxMoment_e, central_e  = \
+		io_utils.unpack_parameters(config['FEATURE_PARAMS'])
+
+	opath = "{b}/{t}/{d}/{m}/".format(b=output_path,t=exp_type,d=short_name,m=model_name.upper())
+	os.makedirs(opath,exist_ok = True)
+
+	model, param_grid = model_utils.make_model_and_param_grid(model_name, standardize, "regr", config['MODEL_PARAMS'])
+
+
+	data = ADME(name = tdc_name, path = tdc_path) # will download if not already present
+	dataframe = data.get_data()
+
+	rng = np.random.RandomState(seed = rngseed)
+	
+
+
+	### process dataset to graph representations
+	
+	msg = "Making Dataset"
+	io_utils.star_echo("Making Dataset Dictionary")
+	
+	start = time.time()
+	
+	converted_DataSet = dataset_utils.make_dataset(dataframe,short_size,long_size)
+	obs_index = list(converted_DataSet.keys())
+
+	end = time.time()
+
+	io_utils.star_echo("took {t} seconds to make it".format(t = str(end-start)))
+
 	results = defaultdict(list)
 
 	if feature_type.lower() == "fingerprints":
-		feature_types = FINGERPRINT_FEATURES
+		feature_types = dataset_utils.FINGERPRINT_FEATURES
 	else:
 		feature_types = [feature_type]
-	
-	params = {'alpha':np.logspace(10**-2, 10**2, 10), 'l1_ratio':np.linspace(0.01, 0.99,10)}
-	regr = ElasticNet(random_state = rng)
-	
-	for feature_type in feature_types:
-		for i in tqdm.tqdm(range(config['num_trials'])):
-			trn_idx, test_idx = train_test_split(obs_index ,random_state = rng)
-			train_ds = {i:DS[i] for i in trn_idx}
-			test_ds = {i:DS[i] for i in test_idx}
-			X_train, y_train = make_numpy_dataset(train_ds,feature_type)
-			X_test, y_test  = make_numpy_dataset(test_ds,feature_type)
 
-			
-			clf = GridSearchCV(regr, params)
-			clf.fit(X_train, y_train)
-			preds = clf.best_estimator_.predict(X_test)
+	for feature_type in feature_types:
+		start = time.time()
+
+		for i in tqdm.tqdm(range(num_trials)):
+
+			trn_idx, test_idx = train_test_split(obs_index ,random_state = rng)
+			train_ds = {i:converted_DataSet[i] for i in trn_idx}
+			test_ds = {i:converted_DataSet[i] for i in test_idx}
+			X_train, y_train = dataset_utils.make_numpy_dataset(train_ds,feature_type, numScales_v, maxMoment_v, central_v)
+			X_test, y_test  = dataset_utils.make_numpy_dataset(test_ds,feature_type, numScales_v, maxMoment_v, central_v)
+
+
+			regressor = GridSearchCV(model, param_grid)
+			regressor.fit(X_train, y_train)
+			preds = regressor.best_estimator_.predict(X_test)
 			
 			MAE  = mean_absolute_error(y_test,preds)
 			MSE = mean_squared_error(y_test, preds)
@@ -74,13 +108,17 @@ def main(
 			results['MAE'].append(MAE)
 			results['MSE'].append(MSE)
 			results['RMSE'].append(RMSE)
+		
 
-
+		end = time.time()
+		io_utils.star_echo("Took {t} seconds per iteration".format(t=(end-start)/num_trials))
 
 		df = pd.DataFrame(results)
-		opath = "{b}/{t}/{d}".format(b=config['output_path'],t=config['exp_type'],d=config['dataset'])
-		os.makedirs(opath,exist_ok = True)
 		df.to_csv("{p}/{f}".format(p=opath,f=feature_type))
+
+
+
+
 
 
 		

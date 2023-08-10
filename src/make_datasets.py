@@ -33,26 +33,9 @@ def make_diffusion_op(
 	T = 0.5*(np.eye(A.shape[0])+A)
 	return(T)
 	
-def make_adj_mat(
-	g
-	) -> np.ndarray:
-	
-	N = g['num_nodes']
-	adj_mat = np.zeros((N,N))
-	
-	for i in range(g['edge_index'].shape[1]):
-		n1, n2 = g['edge_index'][0,i], g['edge_index'][1,i]
-		adj_mat[n1,n2] = 1
-	if not (adj_mat == adj_mat.T).all():
-		sys.exit(1)
-	return adj_mat
 
 
 
-def make_dataset(
-	df:pd.DataFrame
-	) -> Dict:
-	dataset = {}
 
 
 
@@ -80,61 +63,6 @@ def make_fig(
 	
 
 
-def make_linegraph(
-	graph,
-	adj_mat
-	) -> Dict:
-	
-
-	
-	L = nx.line_graph(nx.from_numpy_array(adj_mat))
-	
-	LG_node_feats = defaultdict(list)
-
-	edge_list = graph['edge_index']
-	edge_feat = graph['edge_feat']
-	
-
-	for i in range(edge_list.shape[1]):
-		node1, node2 = edge_list[0,i], edge_list[1,i]
-		features = edge_feat[i,:]
-		edge = (min(node1,node2),max(node1,node2))
-
-		LG_node_feats[edge].append(features)
-					
-	for k in LG_node_feats.keys():
-		efeat = LG_node_feats[k]
-		if len(efeat) !=2:
-			print("issue with edge {e}".format(e=k))
-		if not (efeat[0]==efeat[1]).all():
-			print("issue with edge {e}".format(e=k))
-			sys.exit(1)
-		else:
-			LG_node_feats[k] = efeat[0]
-	
-	A = nx.adjacency_matrix(L).todense()
-	
-	node_feat = np.array([])
-	for node in L.nodes():
-		node_feat = np.vstack((node_feat,LG_node_feats[node])) if node_feat.size else LG_node_feats[node]
-	
-	return A, node_feat
-
-
-
-
-def reset_dict_index(dataset:Dict) -> Dict:
-	keymap = {}
-	
-	old_keys = list(dataset.keys())
-	
-	for i in range(len(old_keys)):
-		keymap[i] = old_keys[i]
-
-
-	new_ds = {i:dataset[keymap[i]] for i in keymap.keys()}
-	
-	return new_ds
 
 
 
@@ -199,17 +127,7 @@ def make_dataset(
 
 
 
-short_size = 32
-long_size = 1024
 
-bit_short_gen = AllChem.GetRDKitFPGenerator(fpSize=short_size)
-bit_long_gen = AllChem.GetRDKitFPGenerator(fpSize = long_size)
-
-top_short_gen = AllChem.GetTopologicalTorsionGenerator(fpSize = short_size)
-top_long_gen = AllChem.GetTopologicalTorsionGenerator(fpSize = long_size)
-
-morgan_short_gen = AllChem.GetMorganGenerator(fpSize = short_size )
-morgan_long_gen = AllChem.GetMorganGenerator(fpSize = long_size)
 
 path = "../data/raw/tdc/"
 
