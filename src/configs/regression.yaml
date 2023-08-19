@@ -1,7 +1,7 @@
 EXPERIMENT_PARAMS:
  
   num_trials: 100
-  test_pct: 0.8
+  test_pct: 0.75
   rngseed: 12345
   short_size: 32
   long_size: 1024

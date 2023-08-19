@@ -1,4 +1,3 @@
-from sklearn.svm import LinearSVR
 from typing import Union, List, Dict, Tuple
 from collections import defaultdict
 import time 
@@ -111,8 +110,7 @@ def main(
 					 prefix, 
 					 config['MODEL_PARAMS'][model_name.upper()],
 					 rng)
-				print(model)
-				print(param_grid)
+				
 				
 			
 				start = time.time()

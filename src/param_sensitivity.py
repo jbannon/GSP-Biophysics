@@ -1,4 +1,3 @@
-from sklearn.svm import LinearSVR
 from typing import Union, List, Dict, Tuple
 from collections import defaultdict
 import time 
@@ -308,10 +307,10 @@ def run_lg_experiments(task: str,
 def main():
 	classification_name = 'PAMPA_NCATS'
 	regression_name = 'Lipophilicity_AstraZeneca'
-	num_trials = 4
+	num_trials = 20
 
-	MAX_VERTEX_SCALES = 3
-	MAX_VERTEX_MOMENTS = 3
+	MAX_VERTEX_SCALES = 5
+	MAX_VERTEX_MOMENTS = 5
 
 	MAX_EDGE_SCALES  = 5
 	MAX_EDGE_MOMENTS = 5
