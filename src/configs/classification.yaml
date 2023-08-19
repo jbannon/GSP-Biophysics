@@ -1,0 +1,67 @@
+EXPERIMENT_PARAMS:
+ 
+  num_trials: 50
+  test_pct: 0.75
+  rngseed: 12345
+  short_size: 32
+  long_size: 1024
+
+  model_list: ['KNN','SVC','LR']
+  prefix: 'clf'
+  exp_type: "classification"
+  score: 'accuracy_score'
+  output_path: "../results"
+  tdc_path: "../data/raw/tdc/"
+
+
+FEATURE_PARAMS:
+  feature_type: 'all'
+  J_v: 2
+  maxMoment_v: 3
+  central_v: False
+  J_e: 2
+  maxMoment_e: 3
+  central_e: False
+
+
+MODEL_PARAMS:
+  SVC:
+    C:
+      type: "float"
+      min: -2
+      max: 2
+      step: 30
+      logspace: True
+    penalty:
+      type: "list"
+      values: ['l1','l2']
+    dual:
+      type: "list"
+      values: ["auto"]
+  KNN:
+    n_neighbors:
+      type: "int"
+      min: 2
+      max: 15
+      step: 1
+  LR:
+    penalty:
+      type: "list"
+      values: ['l1']
+    solver:
+      type: "list"
+      values: ['saga']
+    C:
+      type: "float"
+      min: -2
+      max: 2
+      step: 40
+      logspace: True
+
+
+
+
+
+
+
+

@@ -1,0 +1,58 @@
+EXPERIMENT_PARAMS:
+ 
+  num_trials: 20
+  test_pct: 0.8
+  rngseed: 12345
+  short_size: 32
+  long_size: 1024
+
+  model_list: ['KNN', 'SVC', 'LR']
+  prefix: 'clf'
+  exp_type: "classification"
+  score: 'accuracy_score'
+  output_path: "../results/paucity"
+  tdc_path: "../data/raw/tdc/"
+
+
+FEATURE_PARAMS:
+  feature_type: 'DWLG'
+  J_v: 2
+  maxMoment_v: 3
+  central_v: False
+  J_e: 2
+  maxMoment_e: 3
+  central_e: False
+
+
+MODEL_PARAMS:
+  SVC:
+    C: 
+      type: "float"
+      min: 10
+      max: 40
+      step: 1
+      logspace: False
+  KNN:
+    n_neighbors:
+      type: "int"
+      min: 2
+      max: 5
+      step: 1
+  LR:
+    C:
+      type: "float"
+      min: -2
+      max: 2
+      step: 1
+      logspace: True
+
+
+
+# KNN:
+    # n_neighbors: 
+
+
+
+
+
+

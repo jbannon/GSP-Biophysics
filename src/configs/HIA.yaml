@@ -1,0 +1,38 @@
+DATASET_PARAMS:
+  short_name: 'HIA'
+  tdc_name: 'HIA_Hou'
+  tdc_path: "../data/raw/tdc/"
+  short_size: 32
+  long_size: 1024
+
+
+
+EXPERIMENT_PARAMS:
+  num_trials: 10
+  test_pct: 0.8
+  rngseed: 12345
+  model_name: 'OLS'
+  exp_type: "classification"
+  score: 'accuracy'
+  output_path: "../results"
+
+
+FEATURE_PARAMS:
+  feature_type: 'fingerprints'
+  standardize_feats: True
+  J_v: 2
+  maxMoment_v: 3
+  central_v: False
+  J_e: 2
+  maxMoment_e: 3
+  central_e: False
+
+
+  
+MODEL_PARAMS:
+  alpha: []
+
+
+
+
+

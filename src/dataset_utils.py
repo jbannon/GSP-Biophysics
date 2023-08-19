@@ -26,6 +26,26 @@ FINGERPRINT_FEATURES = ['morgan_short','morgan_long','top_short','top_long','bit
 
 GSP_FEATURES = ["DW","DWLG"]
 
+
+REGRESSION_DATASETS = ['HydrationFreeEnergy_FreeSolv','Lipophilicity_AstraZeneca']
+
+CLASSIFICATION_DATASETS = ['Bioavailability_Ma','PAMPA_NCATS','PAMPA_APPROVED','HIA_Hou','BBB_Martins']
+
+dataset_dict = {'regression':['HydrationFreeEnergy_FreeSolv','Lipophilicity_AstraZeneca'],
+				'classification':['Bioavailability_Ma','PAMPA_NCATS','PAMPA_APPROVED','HIA_Hou','BBB_Martins']}
+
+
+dataset_to_short_name = {'HydrationFreeEnergy_FreeSolv': 'HFE', 
+						 'Lipophilicity_AstraZeneca': 'Lipophilicity',
+						 'PAMPA_NCATS': 'MemPerm', 
+						 'BBB_Martins': 'BBB',
+						 'Bioavailability_Ma': 'Bioavail',
+						 'PAMPA_APPROVED': 'MemPerm_Approved',
+						 'HIA_Hou': 'HIA',
+						 'BBB_Martins': 'BBB'
+						}
+
+
 def reset_dict_index(dataset:Dict) -> Dict:
 	keymap = {}
 	
@@ -172,13 +192,18 @@ def make_dataset(
 def make_numpy_dataset(
 	data:Dict,
 	feature_type:str,
-	numScales:int = None,
-	maxMoment:int = None,
-	central:bool = True
+	numScales_v:int = None,
+	maxMoment_v:int = None,
+	central_v:bool = True,
+
+	numScales_e:int = None,
+	maxMoment_e: int = None,
+	central_e:bool = True
 	):
 	
 
 	X, y = [np.array([]) for i in range(2)]
+
 	if feature_type in FINGERPRINT_FEATURES:
 		for k in data.keys():
 			molecule_data = data[k]
@@ -190,25 +215,33 @@ def make_numpy_dataset(
 			molecule_data = data[k]
 			
 
-			transformer = gt.DiffusionWMT(numScales,maxMoment,molecule_data['adj_mat'],central)
+			transformer = gt.DiffusionWMT(numScales_v,maxMoment_v,molecule_data['adj_mat'],central_v)
 			X_transformed = transformer.computeTransform(molecule_data['node_feat'])
 			
 			X = np.vstack( (X, X_transformed)) if X.size else X_transformed
-			y = np.vstack( (y, X_transformed)) if  y.size else X_transformed
+			y = np.vstack( (y, molecule_data['y'])) if  y.size else np.array(molecule_data['y'])
 
 	elif feature_type.upper() == "DWLG":
-		for k in dataset.keys():
+		for k in data.keys():
 			molecule_data = data[k]
-			
-			print(mol_graph['linegraph'])
-			sys.exit(1)
 
-			transformer = gt.DiffusionWMT(numScales,maxMoment,molecule_data['adj_mat'],central)
-			LG_transform = gt.DiffusionWMT(numScales,maxMoment,molecule_data['linegraph'])
+		
+
+			transformer = gt.DiffusionWMT(numScales_v,maxMoment_v,molecule_data['adj_mat'],central_v)
+			LG_transform = gt.DiffusionWMT(numScales_e,maxMoment_e,molecule_data['linegraph']['adj_mat'],central_e)
+			
+
 			X_transformed = transformer.computeTransform(molecule_data['node_feat'])
 			
+			X_LG_transformed = LG_transform.computeTransform(molecule_data['linegraph']['node_feat'])
+
+			X_transformed = np.hstack((X_transformed,X_LG_transformed))
+
+		
+			
+			
 			X = np.vstack( (X, X_transformed)) if X.size else X_transformed
-			y = np.vstack( (y, X_transformed)) if  y.size else X_transformed
+			y = np.vstack( (y, molecule_data['y'])) if  y.size else np.array(molecule_data['y'])
 
 
 	return X, y

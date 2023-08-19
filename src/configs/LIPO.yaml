@@ -1,35 +1,21 @@
-DATASET_PARAMS:
-  short_name: 'Lipophilicity'
-  tdc_name: 'Lipophilicity_AstraZeneca'
-  tdc_path: "../data/raw/tdc/"
+EXPERIMENT_PARAMS:
+ 
+  num_trials: 100
+  test_pct: 0.8
+  rngseed: 12345
   short_size: 32
   long_size: 1024
 
-
-
-EXPERIMENT_PARAMS:
-  num_trials: 10
-  test_pct: 0.8
-  rngseed: 12345
-  model_name: 'OLS'
+  model_list: ['Ridge','OLS']
+  prefix: 'regr'
   exp_type: "regression"
   score: 'neg_mean_absolute_error'
   output_path: "../results"
-
-
-
-CV_PARAMS:
-  logspace: False
-  alpha_min: 0.01
-  alpha_max: 100
-  num_alphas: 10
-  num_l1s: 10
-  l1_min: 0.01
-  l1_max: 0.99
+  tdc_path: "../data/raw/tdc/"
 
 
 FEATURE_PARAMS:
-  feature_type: 'fingerprints'
+  feature_type: 'morgan_short'
   standardize_feats: True
   J_v: 2
   maxMoment_v: 3
@@ -39,22 +25,28 @@ FEATURE_PARAMS:
   central_e: False
 
 
-  
-OLS_PARAMS:
-  model_type: 'OLS'
-  names: []
-  mins: []
-  maxs: []
-  steps: []
-  logspaces: []
-
-RIDGE_PARAMS:
-  model_type: 'RIDGE'
-  names: ['alpha']
-  mins: [0.01]
-  maxs: [100]
-  steps: [10]
-  logspaces: [True]
+MODEL_PARAMS:
+  RIDGE:
+    names: ['alpha']
+    mins: [0.01]
+    maxs: [100]
+    steps: [10]
+    logspaces: [True]
+    int_only: [False]
+  OLS:
+    names: []
+    mins: []
+    maxs: []
+    steps: []
+    logspaces: []
+    int_only: []
+  RFR:
+    names: ['n_estimators','max_depth']
+    mins: [50, 2]
+    maxs: [200,10]
+    steps: [10, 10]
+    logspaces: [False, False]
+    int_only: [True, True]
 
 
 
