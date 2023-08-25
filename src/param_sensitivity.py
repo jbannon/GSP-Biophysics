@@ -57,122 +57,7 @@ def make_model_and_grid(
 
 	return model, pca_model, grid
 
-def run_vertex_experiments(
-	task: str,
-	feature_type:str,
-	num_trials:int,
-	data_set:Dict, 
-	obs_index:List[int],
-	MAX_VERTEX_SCALES:int,
-	MAX_VERTEX_MOMENTS:int,
-	prefix: str,
-	) -> None: 
 
-	if task == 'regression':
-		model, pca_model, grid  = make_model_and_grid(task, prefix)
-	elif task == 'classification':
-		model, pca_model, grid  = make_model_and_grid(task, prefix)
-
-	
-	rng = np.random.RandomState(1234)
-	results = defaultdict(list)	
-
-	for max_vertex_scale in range(1,MAX_VERTEX_SCALES):
-			for max_vertex_moment in range(1,MAX_VERTEX_MOMENTS):
-				for center_vertex_features in [True, False]:
-					for i in tqdm.tqdm(range(num_trials)):
-
-						trn_idx, test_idx = train_test_split(obs_index ,random_state = rng)
-						train_ds = {i:data_set[i] for i in trn_idx}
-						test_ds = {i:data_set[i] for i in test_idx}
-
-						X_train, y_train = dataset_utils.make_numpy_dataset(train_ds,feature_type, 
-							max_vertex_scale, max_vertex_moment, center_vertex_features,
-							numScales_e = None, maxMoment_e = None, central_e = None
-							)
-						X_test, y_test  = dataset_utils.make_numpy_dataset(test_ds,feature_type,
-							max_vertex_scale, max_vertex_moment, center_vertex_features,
-							numScales_e = None, maxMoment_e = None, central_e = None
-							)
-						
-						cv_model = GridSearchCV(model, grid)
-						cv_model.fit(X_train, y_train)
-						
-
-						
-
-						results['iter'].append(i)
-						results['max_vertex_scale'].append(max_vertex_scale)
-						results['max_vertex_moment'].append(max_vertex_moment)
-						results['centered_vertex_features'].append(center_vertex_features)
-						results['pca'].append("No")
-
-						if task == 'classification':
-							preds = cv_model.best_estimator_.predict(X_test)
-							pred_probs = cv_model.best_estimator_.predict_proba(X_test)
-							acc = accuracy_score(y_test, preds)
-							roc = roc_auc_score(y_test, pred_probs[:,1])
-							tn, fp, fn, tp  = confusion_matrix(y_test, preds, labels = [0,1]).ravel()
-							f1 = f1_score(y_test,preds)
-
-							results['test_acc'].append(acc)
-							results['test_roc'].append(roc)
-							results['true negatives'].append(tn)
-							results['false_negatives'].append(fn)
-							results['true_positives'].append(tp)
-							results['false_positives'].append(fp)
-							results['f1'].append(f1)
-						elif task == 'regression':
-							preds = cv_model.best_estimator_.predict(X_test)
-							MAE  = mean_absolute_error(y_test,preds)
-							MSE = mean_squared_error(y_test, preds)
-							RMSE = mean_squared_error(y_test,preds, squared = False)
-						
-							results['MAE'].append(MAE)
-							results['MSE'].append(MSE)
-							results['RMSE'].append(RMSE)
-
-
-						if max_vertex_scale*max_vertex_moment>10:
-							results['iter'].append(i)
-							results['max_vertex_scale'].append(max_vertex_scale)
-							results['max_vertex_moment'].append(max_vertex_moment)
-							results['centered_vertex_features'].append(center_vertex_features)
-							results['pca'].append("Yes")
-
-							pca_cv = GridSearchCV(pca_model, grid)
-							pca_cv.fit(X_train,y_train)
-
-							if task == 'classification':
-								preds = pca_cv.best_estimator_.predict(X_test)
-								pred_probs = pca_cv.best_estimator_.predict_proba(X_test)
-								
-								acc = accuracy_score(y_test, preds)
-								roc = roc_auc_score(y_test, pred_probs[:,1])
-								tn, fp, fn, tp  = confusion_matrix(y_test, preds, labels = [0,1]).ravel()
-								f1 = f1_score(y_test,preds)
-
-								results['test_acc'].append(acc)
-								results['test_roc'].append(roc)
-								results['true negatives'].append(tn)
-								results['false_negatives'].append(fn)
-								results['true_positives'].append(tp)
-								results['false_positives'].append(fp)
-								results['f1'].append(f1)
-
-							elif task == 'regression':
-								preds = cv_model.best_estimator_.predict(X_test)
-								MAE  = mean_absolute_error(y_test,preds)
-								MSE = mean_squared_error(y_test, preds)
-								RMSE = mean_squared_error(y_test,preds, squared = False)
-						
-								results['MAE'].append(MAE)
-								results['MSE'].append(MSE)
-								results['RMSE'].append(RMSE)
-
-
-	results = pd.DataFrame(results)
-	return results
 
 					
 
@@ -305,6 +190,8 @@ def run_lg_experiments(task: str,
 
 	
 def main():
+
+
 	classification_name = 'PAMPA_NCATS'
 	regression_name = 'Lipophilicity_AstraZeneca'
 	num_trials = 20
@@ -336,7 +223,7 @@ def main():
 		path = "../results/sensitivity/{t}/".format(t=task)
 		os.makedirs(path,exist_ok=True)
 
-		for feature_type in ['DW','DWLG']:
+		for feature_type in ['DWLG']:
 			if feature_type == 'DW':
 				results = run_vertex_experiments(task, feature_type,num_trials, converted_DataSet,obs_index, MAX_VERTEX_SCALES, MAX_VERTEX_MOMENTS,task[:4])
 				

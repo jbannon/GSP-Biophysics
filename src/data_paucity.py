@@ -4,7 +4,7 @@ from sklearn.metrics import confusion_matrix
 from typing import Union, List, Dict, Tuple
 from collections import defaultdict
 import time 
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, balanced_accuracy_score
 
 import sys 
 import os 
@@ -119,7 +119,7 @@ def main(
 						preds = classifier.best_estimator_.predict(X_test)
 						
 						
-						acc = accuracy_score(y_test, preds)
+						acc = balanced_accuracy_score(y_test, preds)
 						tn, fp, fn, tp = confusion_matrix(y_test, preds,labels = [0,1]).ravel()
 						
 						results['iter'].append(i)
