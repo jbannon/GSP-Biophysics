@@ -42,10 +42,10 @@ from imblearn.under_sampling import RandomUnderSampler
 def main():
 	dataset = 'PAMPA_NCATS'
 
-	num_trials = 5
+	
 
-	MAX_VERTEX_SCALES = 3
-	MAX_VERTEX_MOMENTS = 3
+	MAX_VERTEX_SCALES =  6
+	MAX_VERTEX_MOMENTS = 6
 
 	tdc_path = "../data/raw/tdc"
 	short_size = 32
@@ -96,22 +96,25 @@ def main():
 	model_names = ['SVC','RBF','LR']
 	
 	rng = np.random.RandomState(1234)
-	results = defaultdict(list)	
+	
 	feature_type = 'DW'
-	splitter = StratifiedKFold(n_splits = num_trials)
+	
 
 
 	for dtype in ['full','approved']:
 		if dtype == 'full':
 			dataframe = data.get_data()
+			num_trials = 20
 		elif dtype == 'approved':
 			dataframe = data.get_approved_set()
+			num_trials = 5
 		data_set = dataset_utils.make_dataset(dataframe,short_size,long_size)
 		obs_index = list(data_set.keys())
+		splitter = StratifiedKFold(n_splits = num_trials)
 
 		results = defaultdict(list)
-		for max_vertex_scale in range(2,MAX_VERTEX_SCALES):
-				for max_vertex_moment in range(2,MAX_VERTEX_MOMENTS):
+		for max_vertex_scale in range(1,MAX_VERTEX_SCALES):
+				for max_vertex_moment in range(1,MAX_VERTEX_MOMENTS):
 					for center_vertex_features in [True, False]:
 						X,y = dataset_utils.make_numpy_dataset( {i:data_set[i] for i in obs_index},feature_type, 
 								max_vertex_scale, max_vertex_moment, center_vertex_features,
