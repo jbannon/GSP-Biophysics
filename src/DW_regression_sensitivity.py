@@ -141,7 +141,7 @@ def main():
 
 	results = pd.DataFrame(results)
 
-	results.to_csv(path + "DW.csv", index = False)
+	results.to_csv(path + "{ft}.csv".format(ft=feature_type), index = False)
 		
 if __name__ == '__main__':
 	main()

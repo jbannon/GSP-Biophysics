@@ -18,7 +18,7 @@ from sklearn.preprocessing import  StandardScaler
 
 
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import train_test_split,GridSearchCV
+from sklearn.model_selection import train_test_split, GridSearchCV, LeaveOneOut, KFold
 
 from sklearn.metrics import mean_absolute_error, mean_squared_error, roc_auc_score, confusion_matrix, accuracy_score,f1_score
 
@@ -35,10 +35,14 @@ from sklearn.neighbors import KNeighborsClassifier
 
 def main():
 	dataset = 'Lipophilicity_AstraZeneca'
-	num_trials = 50
+	
 
-	MAX_VERTEX_SCALES = 5
-	MAX_VERTEX_MOMENTS = 5
+	MAX_VERTEX_SCALES = 6
+	MAX_VERTEX_MOMENTS = 6
+	MAX_EDGE_SCALES = 6
+	MAX_EDGE_MOMENTS = 6
+
+	seed = 1234
 
 	tdc_path = "../data/raw/tdc"
 	short_size = 32
@@ -74,74 +78,63 @@ def main():
 	
 	rng = np.random.RandomState(1234)
 	results = defaultdict(list)	
-	feature_type = 'DW'
-	for max_vertex_scale in range(4,MAX_VERTEX_SCALES):
-			for max_vertex_moment in range(4,MAX_VERTEX_MOMENTS):
+	feature_type = 'DWLG'
+	n_folds = 20
+
+	splitter = KFold(shuffle = True, random_state = rng)
+	
+	for max_vertex_scale in range(1,MAX_VERTEX_SCALES):
+			for max_vertex_moment in range(1,MAX_VERTEX_MOMENTS):
 				for center_vertex_features in [True, False]:
-					io_utils.star_echo("\nWorking on:\n\tvertex scale {J}\n\tvertex moment {p}\n\tcentering: {c}\n".format(J=max_vertex_scale,p = max_vertex_moment, c= center_vertex_features))
-					for i in tqdm.tqdm(range(num_trials)):
-
-						trn_idx, test_idx = train_test_split(obs_index ,random_state = rng)
-						train_ds = {i:data_set[i] for i in trn_idx}
-						test_ds = {i:data_set[i] for i in test_idx}
-
-						X_train, y_train = dataset_utils.make_numpy_dataset(train_ds,feature_type, 
-							max_vertex_scale, max_vertex_moment, center_vertex_features,
-							numScales_e = None, maxMoment_e = None, central_e = None
-							)
-						X_test, y_test  = dataset_utils.make_numpy_dataset(test_ds,feature_type,
-							max_vertex_scale, max_vertex_moment, center_vertex_features,
-							numScales_e = None, maxMoment_e = None, central_e = None
-							)
-						
-						cv_model = GridSearchCV(model, grid)
-						cv_model.fit(X_train, y_train)
-						
-
-						
-
-						results['iter'].append(i)
-						results['max_vertex_scale'].append(max_vertex_scale)
-						results['max_vertex_moment'].append(max_vertex_moment)
-						results['centered_vertex_features'].append(center_vertex_features)
-						results['pca'].append("No")
-
-						
-						
-						preds = cv_model.best_estimator_.predict(X_test)
-						MAE  = mean_absolute_error(y_test,preds)
-						MSE = mean_squared_error(y_test, preds)
-						RMSE = mean_squared_error(y_test,preds, squared = False)
-					
-						results['MAE'].append(MAE)
-						results['MSE'].append(MSE)
-						results['RMSE'].append(RMSE)
+					for max_edge_scale in range(1, MAX_EDGE_SCALES):
+						for max_edge_moment in range(1,MAX_EDGE_MOMENTS):
+							for center_edge_features in [True, False]:
 
 
-						if max_vertex_scale*max_vertex_moment>10:
-							results['iter'].append(i)
-							results['max_vertex_scale'].append(max_vertex_scale)
-							results['max_vertex_moment'].append(max_vertex_moment)
-							results['centered_vertex_features'].append(center_vertex_features)
-							results['pca'].append("Yes")
 
-							pca_cv = GridSearchCV(pca_model, grid)
-							pca_cv.fit(X_train,y_train)
 
-							
-							preds = cv_model.best_estimator_.predict(X_test)
-							MAE  = mean_absolute_error(y_test,preds)
-							MSE = mean_squared_error(y_test, preds)
-							RMSE = mean_squared_error(y_test,preds, squared = False)
-					
-							results['MAE'].append(MAE)
-							results['MSE'].append(MSE)
-							results['RMSE'].append(RMSE)
+								io_utils.star_echo("\nWorking on:\n\tvertex scale {J}\n\tvertex moment {p}\n\tcentering: {c}\n".format(J=max_vertex_scale,p = max_vertex_moment, c= center_vertex_features))
+								
+								X,y = dataset_utils.make_numpy_dataset( {i:data_set[i] for i in obs_index},feature_type, 
+								max_vertex_scale, max_vertex_moment, center_vertex_features,
+								numScales_e = max_edge_scale, maxMoment_e = max_edge_moment, central_e = center_edge_features
+								)
+
+								for i, (train_idx, test_idx) in tqdm.tqdm(enumerate(splitter.split(X,y))):
+									
+									X_train, y_train = X[train_idx,:], y[train_idx]
+									X_test, y_test = X[test_idx,:], y[test_idx]
+
+
+									
+									cv_model = GridSearchCV(model, grid)
+									cv_model.fit(X_train, y_train)
+									
+
+									
+
+									results['iter'].append(i)
+									results['max_vertex_scale'].append(max_vertex_scale)
+									results['max_vertex_moment'].append(max_vertex_moment)
+									results['centered_vertex_features'].append(center_vertex_features)
+									results['pca'].append("No")
+
+									
+									
+									preds = cv_model.best_estimator_.predict(X_test)
+									MAE  = mean_absolute_error(y_test,preds)
+									MSE = mean_squared_error(y_test, preds)
+									RMSE = mean_squared_error(y_test,preds, squared = False)
+								
+									results['MAE'].append(MAE)
+									results['MSE'].append(MSE)
+									results['RMSE'].append(RMSE)
+
 
 
 	results = pd.DataFrame(results)
 
-	results.to_csv(path + "DW.csv", index = False)
+	results.to_csv(path + "{ft}.csv".format(ft=feature_type), index = False)
 		
 if __name__ == '__main__':
 	main()

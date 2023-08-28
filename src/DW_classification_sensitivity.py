@@ -19,7 +19,7 @@ from sklearn.preprocessing import  StandardScaler
 
 
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import train_test_split,GridSearchCV,StratifiedKFold
+from sklearn.model_selection import train_test_split,GridSearchCV,StratifiedKFold, LeaveOneOut
 
 from sklearn.metrics import mean_absolute_error, mean_squared_error, roc_auc_score, confusion_matrix, accuracy_score,f1_score
 from sklearn.metrics import balanced_accuracy_score, precision_recall_curve, auc 
@@ -100,17 +100,22 @@ def main():
 	feature_type = 'DW'
 	
 
-
-	for dtype in ['full','approved']:
+	num_trials = 20
+	for dtype in ['approved','full']:
 		if dtype == 'full':
 			dataframe = data.get_data()
-			num_trials = 20
+
+			# num_trials = 20
 		elif dtype == 'approved':
 			dataframe = data.get_approved_set()
-			num_trials = 5
+			# splitter = LeaveOneOut()
+			# num_trials = 10
+		splitter = StratifiedKFold(n_splits = num_trials,shuffle = True, random_state = rng)
+		
 		data_set = dataset_utils.make_dataset(dataframe,short_size,long_size)
+		
 		obs_index = list(data_set.keys())
-		splitter = StratifiedKFold(n_splits = num_trials)
+		
 
 		results = defaultdict(list)
 		for max_vertex_scale in range(1,MAX_VERTEX_SCALES):
@@ -123,22 +128,26 @@ def main():
 						io_utils.star_echo("\nWorking on:\n\tvertex scale {J}\n\tvertex moment {p}\n\tcentering: {c}\n".format(J=max_vertex_scale,p = max_vertex_moment, c= center_vertex_features))
 						
 
-						for i, (train_idx, test_idx) in tqdm.tqdm(enumerate(splitter.split(X,y))):
-							steps = [('o', SMOTE(sampling_strategy = 0.9)),('u', RandomUnderSampler())]
-							samplePipe = Pipeline(steps)
-							X_train, y_train = X[train_idx,:], y[train_idx]
-							X_test, y_test = X[test_idx,:], y[test_idx]
-							
-							if dtype == 'full':
-								X_train, y_train = samplePipe.fit_resample(X_train,y_train)
-							
-							
-							for model in tqdm.tqdm(model_names,leave=False,desc = 'simple models'):
-								if model in ['SVC','RBF']:
-									grid = svc_grid
-								else:
-									grid = lr_grid
+						#for i, (train_idx, test_idx) in tqdm.tqdm(enumerate(splitter.split(X,y))):
+						for model in tqdm.tqdm(model_names):
+							if model in ['SVC','RBF']:
+								grid = svc_grid
+							else:
+								grid = lr_grid
+
+							for i, (train_idx, test_idx) in tqdm.tqdm(enumerate(splitter.split(X,y)),leave=False):
+								steps = [('o', SMOTE(sampling_strategy = 0.9)),('u', RandomUnderSampler())]
+								samplePipe = Pipeline(steps)
+								X_train, y_train = X[train_idx,:], y[train_idx]
+								X_test, y_test = X[test_idx,:], y[test_idx]
+								unique, counts = np.unique(y_test, return_counts=True)
 								
+								if dtype == 'full':
+									X_train, y_train = samplePipe.fit_resample(X_train,y_train)
+								
+								# print(pd.value_counts(y_train))
+								
+									
 								cv_model = GridSearchCV(simple_tuples[model], grid)
 								cv_model.fit(X_train, y_train)
 
@@ -156,12 +165,14 @@ def main():
 								results['pca'].append("No")
 
 								
-								
+								# print(model)
 								preds = cv_model.best_estimator_.predict(X_test)
-
+								# print(preds)
+								# print(y_test.reshape(-1,))
+								
 								acc = accuracy_score(y_test, preds)
 								b_acc = balanced_accuracy_score(y_test,preds)
-
+								
 								results['acc'].append(acc)
 								results['bal_acc'].append(b_acc)
 
@@ -181,7 +192,7 @@ def main():
 
 		results = pd.DataFrame(results)
 
-		results.to_csv(path + "{d}_DW.csv".format(d=dtype), index = False)
+		results.to_csv(path + "{d}_{ft}.csv".format(d=dtype,ft=feature_type), index = False)
 		
 if __name__ == '__main__':
 	main()
