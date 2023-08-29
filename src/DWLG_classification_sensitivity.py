@@ -20,6 +20,8 @@ from sklearn.preprocessing import  StandardScaler
 
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split,GridSearchCV,StratifiedKFold, LeaveOneOut
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+
 
 from sklearn.metrics import mean_absolute_error, mean_squared_error, roc_auc_score, confusion_matrix, accuracy_score,f1_score
 from sklearn.metrics import balanced_accuracy_score, precision_recall_curve, auc 
@@ -58,27 +60,23 @@ def main():
 
 	# model_tuple = (prefix,Ridge())
 
-	model_tuples = {'SVC':(prefix, LinearSVC()), 'RBF': (prefix, SVC(kernel = 'rbf',gamma = 'scale')), 'LR':(prefix, LogisticRegression())}
+	model_tuples = {'SVC':(prefix, LinearSVC()), 
+		'RBF': (prefix, SVC(kernel = 'rbf',gamma = 'scale')), 
+		'LR':(prefix, LogisticRegression()),
+		'GB':(prefix, GradientBoostingClassifier()),
+		'RFC':(prefix,RandomForestClassifier())}
 
 
 	svc_grid = {prefix + "__C":[10**i for i in range(-6,1)]}
 	lr_grid = {prefix + "__C":[10**i for i in range(-6,-4)]}
+	gb_grid = {prefix + "__learning_rate":[0.1,0.2]}
+	rfc_grid = {prefix + "__n_estimators":[20,100]}
 	
-	# sys.exit(1)
-
 
 	scale_pre = [('scaler',StandardScaler())]
-	pca_pre  = [('scaler',StandardScaler()),
-		 ('dimred',PCA(n_components = pca_components))]
-
-
 	simple_tuples = {k:Pipeline(scale_pre + [model_tuples[k]]) for k in model_tuples.keys()}
-	pca_tuples = {k:Pipeline(pca_pre + [model_tuples[k]]) for k in model_tuples.keys()}
 	
-
-	# models = {'SVC':}
-
-
+	
 
 
 	data = ADME(name = dataset, path = tdc_path) # will download if not already present
@@ -95,14 +93,14 @@ def main():
 	short_name = dataset_utils.dataset_to_short_name[dataset]
 
 
-	model_names = ['SVC','RBF','LR']
+	model_names = ['SVC','RBF','LR','GB','RFC']
 	
 	rng = np.random.RandomState(1234)
 	
 	feature_type = 'DWLG'
 	
 
-	num_trials = 20
+	num_trials = 3
 	for dtype in ['approved','full']:
 		if dtype == 'full':
 			dataframe = data.get_data()
@@ -135,15 +133,25 @@ def main():
 									max_vertex_scale, max_vertex_moment, center_vertex_features,
 									numScales_e = max_edge_scale, maxMoment_e = max_edge_moment, central_e = center_edge_features
 									)
-								io_utils.star_echo("\nWorking on:\n\tvertex scale {J}\n\tvertex moment {p}\n\tcentering: {c}\n".format(J=max_vertex_scale,p = max_vertex_moment, c= center_vertex_features))
+
+								info  = "\nWorking on:\n\tvertex scale {J}\n\tvertex moment {p}\n\tcentering vertices: {c}\n\tedge scale {J1}\n\tedge moment {p1}\n\tcentering_edges {c1}\n".format(J=max_vertex_scale,
+									p = max_vertex_moment,
+									c= center_vertex_features,
+									J1 = max_edge_scale, p1 = max_edge_moment, c1 = center_edge_features )
+								io_utils.star_echo(info)
 						
 
 						#for i, (train_idx, test_idx) in tqdm.tqdm(enumerate(splitter.split(X,y))):
 								for model in tqdm.tqdm(model_names):
 									if model in ['SVC','RBF']:
 										grid = svc_grid
-									else:
+									elif model == 'LR':
 										grid = lr_grid
+									elif model == 'GB':
+										grid = gb_grid
+									elif model == 'RFC':
+										grid = rfc_grid
+									
 
 									for i, (train_idx, test_idx) in tqdm.tqdm(enumerate(splitter.split(X,y)),leave=False):
 										steps = [('o', SMOTE(sampling_strategy = 0.9)),('u', RandomUnderSampler())]

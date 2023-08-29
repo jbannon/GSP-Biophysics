@@ -2,7 +2,7 @@ from typing import Union, List, Dict, Tuple
 from collections import defaultdict
 import time 
 
-
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 import sys 
 import os 
 import argparse
@@ -56,22 +56,25 @@ def main():
 
 	# model_tuple = (prefix,Ridge())
 
-	model_tuples = {'SVC':(prefix, LinearSVC()), 'RBF': (prefix, SVC(kernel = 'rbf',gamma = 'scale')), 'LR':(prefix, LogisticRegression())}
+	model_tuples = {'SVC':(prefix, LinearSVC()), 
+		'RBF': (prefix, SVC(kernel = 'rbf',gamma = 'scale')), 
+		'LR':(prefix, LogisticRegression()),
+		'GB':(prefix, GradientBoostingClassifier()),
+		'RFC':(prefix,RandomForestClassifier())}
 
 
 	svc_grid = {prefix + "__C":[10**i for i in range(-6,1)]}
 	lr_grid = {prefix + "__C":[10**i for i in range(-6,-4)]}
+	gb_grid = {prefix + "__learning_rate":[0.1,0.2]}
+	rfc_grid = {prefix + "__n_estimators":[20,100]}
 	
-	# sys.exit(1)
-
 
 	scale_pre = [('scaler',StandardScaler())]
-	pca_pre  = [('scaler',StandardScaler()),
-		 ('dimred',PCA(n_components = pca_components))]
-
-
 	simple_tuples = {k:Pipeline(scale_pre + [model_tuples[k]]) for k in model_tuples.keys()}
-	pca_tuples = {k:Pipeline(pca_pre + [model_tuples[k]]) for k in model_tuples.keys()}
+
+
+	# simple_tuples = {k:Pipeline(scale_pre + [model_tuples[k]]) for k in model_tuples.keys()}
+	# pca_tuples = {k:Pipeline(pca_pre + [model_tuples[k]]) for k in model_tuples.keys()}
 	
 
 	# models = {'SVC':}
@@ -93,7 +96,7 @@ def main():
 	short_name = dataset_utils.dataset_to_short_name[dataset]
 
 
-	model_names = ['SVC','RBF','LR']
+	model_names = ['SVC','RBF','LR','GB','RFC']
 	
 	rng = np.random.RandomState(1234)
 	
@@ -132,8 +135,12 @@ def main():
 						for model in tqdm.tqdm(model_names):
 							if model in ['SVC','RBF']:
 								grid = svc_grid
-							else:
+							elif model == 'LR':
 								grid = lr_grid
+							elif model == 'GB':
+								grid = gb_grid
+							elif model == 'RFC':
+								grid = rfc_grid
 
 							for i, (train_idx, test_idx) in tqdm.tqdm(enumerate(splitter.split(X,y)),leave=False):
 								steps = [('o', SMOTE(sampling_strategy = 0.9)),('u', RandomUnderSampler())]
