@@ -82,7 +82,7 @@ def main():
 	n_folds = 20
 
 	splitter = KFold(shuffle = True, random_state = rng)
-	
+
 	for max_vertex_scale in range(1,MAX_VERTEX_SCALES):
 			for max_vertex_moment in range(1,MAX_VERTEX_MOMENTS):
 				for center_vertex_features in [True, False]:
@@ -117,6 +117,10 @@ def main():
 									results['max_vertex_scale'].append(max_vertex_scale)
 									results['max_vertex_moment'].append(max_vertex_moment)
 									results['centered_vertex_features'].append(center_vertex_features)
+									results['max_edge_scale'].append(max_vertex_scale)
+									results['max_edge_moment'].append(max_vertex_moment)
+									results['centered_edge_features'].append(center_vertex_features)
+									
 									results['pca'].append("No")
 
 									

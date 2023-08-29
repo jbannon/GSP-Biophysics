@@ -172,6 +172,13 @@ def main():
 										results['max_vertex_scale'].append(max_vertex_scale)
 										results['max_vertex_moment'].append(max_vertex_moment)
 										results['centered_vertex_features'].append(center_vertex_features)
+
+
+										results['max_edge_scale'].append(max_vertex_scale)
+										results['max_edge_moment'].append(max_vertex_moment)
+										results['centered_edge_features'].append(center_vertex_features)
+
+
 										results['pca'].append("No")
 
 										
