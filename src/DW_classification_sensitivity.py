@@ -103,16 +103,16 @@ def main():
 	feature_type = 'DW'
 	
 
-	num_trials = 20
+	# num_trials = 20
 	for dtype in ['approved','full']:
 		if dtype == 'full':
 			dataframe = data.get_data()
 
-			# num_trials = 20
+			num_trials = 40
 		elif dtype == 'approved':
 			dataframe = data.get_approved_set()
 			# splitter = LeaveOneOut()
-			# num_trials = 10
+			num_trials = 10
 		splitter = StratifiedKFold(n_splits = num_trials,shuffle = True, random_state = rng)
 		
 		data_set = dataset_utils.make_dataset(dataframe,short_size,long_size)

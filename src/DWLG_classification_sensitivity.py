@@ -100,16 +100,16 @@ def main():
 	feature_type = 'DWLG'
 	
 
-	num_trials = 3
+	# num_trials = 3
 	for dtype in ['approved','full']:
 		if dtype == 'full':
 			dataframe = data.get_data()
 
-			# num_trials = 20
+			num_trials = 40
 		elif dtype == 'approved':
 			dataframe = data.get_approved_set()
 			# splitter = LeaveOneOut()
-			# num_trials = 10
+			num_trials = 10
 		splitter = StratifiedKFold(n_splits = num_trials,shuffle = True, random_state = rng)
 		
 
@@ -119,13 +119,13 @@ def main():
 
 		results = defaultdict(list)
 		
-		for max_vertex_scale in range(4,MAX_VERTEX_SCALES):
-			for max_vertex_moment in range(4,MAX_VERTEX_MOMENTS):
+		for max_vertex_scale in range(1,MAX_VERTEX_SCALES):
+			for max_vertex_moment in range(1,MAX_VERTEX_MOMENTS):
 				
 				for center_vertex_features in [True, False]:
 					
-					for max_edge_scale in range(4, MAX_EDGE_SCALES):
-						for max_edge_moment in range(4,MAX_EDGE_MOMENTS):
+					for max_edge_scale in range(1, MAX_EDGE_SCALES):
+						for max_edge_moment in range(1,MAX_EDGE_MOMENTS):
 							
 							for center_edge_features in [True, False]:
 								

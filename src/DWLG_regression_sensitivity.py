@@ -79,7 +79,7 @@ def main():
 	rng = np.random.RandomState(1234)
 	results = defaultdict(list)	
 	feature_type = 'DWLG'
-	n_folds = 20
+	n_folds = 50
 
 	splitter = KFold(shuffle = True, random_state = rng)
 

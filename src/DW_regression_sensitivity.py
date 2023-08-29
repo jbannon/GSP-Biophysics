@@ -37,8 +37,8 @@ def main():
 	dataset = 'Lipophilicity_AstraZeneca'
 	num_trials = 50
 
-	MAX_VERTEX_SCALES = 5
-	MAX_VERTEX_MOMENTS = 5
+	MAX_VERTEX_SCALES = 6
+	MAX_VERTEX_MOMENTS = 6
 
 	tdc_path = "../data/raw/tdc"
 	short_size = 32
@@ -75,8 +75,8 @@ def main():
 	rng = np.random.RandomState(1234)
 	results = defaultdict(list)	
 	feature_type = 'DW'
-	for max_vertex_scale in range(4,MAX_VERTEX_SCALES):
-			for max_vertex_moment in range(4,MAX_VERTEX_MOMENTS):
+	for max_vertex_scale in range(1,MAX_VERTEX_SCALES):
+			for max_vertex_moment in range(1,MAX_VERTEX_MOMENTS):
 				for center_vertex_features in [True, False]:
 					io_utils.star_echo("\nWorking on:\n\tvertex scale {J}\n\tvertex moment {p}\n\tcentering: {c}\n".format(J=max_vertex_scale,p = max_vertex_moment, c= center_vertex_features))
 					for i in tqdm.tqdm(range(num_trials)):
