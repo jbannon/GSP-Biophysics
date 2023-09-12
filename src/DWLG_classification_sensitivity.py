@@ -159,16 +159,12 @@ def main():
 									
 
 									for i, (train_idx, test_idx) in tqdm.tqdm(enumerate(splitter.split(X,y)),leave=False):
-										steps = [('o', SMOTE(sampling_strategy = 0.9)),('u', RandomUnderSampler())]
-										samplePipe = Pipeline(steps)
+										
 										X_train, y_train = X[train_idx,:], y[train_idx]
 										X_test, y_test = X[test_idx,:], y[test_idx]
 										unique, counts = np.unique(y_test, return_counts=True)
 										
-										if dtype == 'full':
-											X_train, y_train = samplePipe.fit_resample(X_train,y_train)
-										
-										# print(pd.value_counts(y_train))
+							
 										
 											
 										cv_model = GridSearchCV(simple_tuples[model], grid)
