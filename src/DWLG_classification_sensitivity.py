@@ -104,8 +104,13 @@ def main():
 	for dtype in ['approved','full']:
 		if dtype == 'full':
 			dataframe = data.get_data()
+			
+			neg = dataframe[dataframe['Y']==0]
+			pos = dataframe[dataframe['Y']==1].sample(n=neg.shape[0])
+			dataframe = pd.concat((pos,neg),axis=0)
+			dataframe = dataframe.sample(frac=1)
 
-			num_trials = 40
+			num_trials = 10
 		elif dtype == 'approved':
 			dataframe = data.get_approved_set()
 			# splitter = LeaveOneOut()

@@ -94,16 +94,6 @@ def main():
 							numScales_e = None, maxMoment_e = None, central_e = None
 							)
 
-
-						print(X_train)
-						print(X_train.shape)
-						print(np.isnan(X_train).any())
-						print(np.where(np.isnan(X_train)))
-
-						print(X_test)
-						print(X_test.shape)
-						print(np.isnan(X_test).any())
-						sys.exit(1)
 						
 						cv_model = GridSearchCV(model, grid)
 						cv_model.fit(X_train, y_train)

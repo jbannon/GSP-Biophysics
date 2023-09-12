@@ -104,15 +104,20 @@ def main():
 	
 
 	# num_trials = 20
-	for dtype in ['approved','full']:
+	for dtype in ['full','approved']:
 		if dtype == 'full':
 			dataframe = data.get_data()
+			
+			neg = dataframe[dataframe['Y']==0]
+			pos = dataframe[dataframe['Y']==1].sample(n=neg.shape[0])
+			dataframe = pd.concat((pos,neg),axis=0)
+			dataframe = dataframe.sample(frac=1)
 
-			num_trials = 40
 		elif dtype == 'approved':
 			dataframe = data.get_approved_set()
 			# splitter = LeaveOneOut()
-			num_trials = 10
+		
+		num_trials = 10
 		splitter = StratifiedKFold(n_splits = num_trials,shuffle = True, random_state = rng)
 		
 		data_set = dataset_utils.make_dataset(dataframe,short_size,long_size)
