@@ -94,16 +94,16 @@ class DiffusionWMT(WaveletMomentTransform):
 		super().__init__(numScales, maxMoment, adjacency_matrix,central)
 
 		N = adjacency_matrix.shape[0]
-		D = np.diag(np.sum(self.W,axis =1))
-		D_sqrt = np.sqrt(D)
-		A = D_sqrt @ self.W @ D_sqrt
+		D_invsqrt = np.diag(1/np.sqrt(np.sum(self.W,axis =1)))
+		# D_sqrt = np.sqrt(D)
+		A = D_invsqrt @ self.W @ D_invsqrt
 
 		T = 0.5*(np.eye(A.shape[0]) + A)
 		
 
 		H = (np.eye(N) - T).reshape(1, N, N)
 		
-
+ 
 		for j in range(1,numScales):
 			new_wavelet = np.linalg.matrix_power(T,2**(j-1)) - np.linalg.matrix_power(T,2**j)
 			H = np.concatenate((H,new_wavelet.reshape(1,N,N)),axis=0)
