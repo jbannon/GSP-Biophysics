@@ -20,8 +20,8 @@ from sklearn.linear_model import Ridge, LinearRegression
 from sklearn.preprocessing import  StandardScaler
 
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import train_test_split,GridSearchCV
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedKFold
+from sklearn.metrics import mean_absolute_error, mean_squared_error,balanced_accuracy_score
 
 
 import io_utils, dataset_utils, model_utils
@@ -38,7 +38,7 @@ def main(
 	) -> None:
 	
 	
-	num_trials, test_pct, rngseed, short_size, long_size, model_list, prefix, exp_type, score, output_path,tdc_path = \
+	num_trials, test_pct, rngseed, DW_size, DWLG_size,default_size, model_list, prefix, exp_type, score, output_path,tdc_path = \
 	 	io_utils.unpack_parameters(config['EXPERIMENT_PARAMS'])
 
 	feature_type, numScales_v, maxMoment_v, central_v, numScales_e, maxMoment_e, central_e  = \
@@ -60,6 +60,7 @@ def main(
 		feature_types = [feature_type]
 
 
+	splitter = StratifiedKFold(n_splits = 3)
 
 	for dataset in datasets:
 
@@ -67,7 +68,7 @@ def main(
 		short_name = dataset_utils.dataset_to_short_name[dataset]
 		if dataset == 'PAMPA_APPROVED':
 			data = ADME(name = 'PAMPA_NCATS',path = tdc_path)
-			dataframe = data.get_approved_set()
+			dataframe = data.get_approved_set()	
 
 		else:
 			data = ADME(name = dataset, path = tdc_path) # will download if not already present
@@ -78,7 +79,7 @@ def main(
 			
 		start = time.time()
 		
-		converted_DataSet = dataset_utils.make_dataset(dataframe,short_size,long_size)
+		converted_DataSet = dataset_utils.make_dataset(dataframe,DW_size,DWLG_size,default_size)
 		obs_index = list(converted_DataSet.keys())
 
 		end = time.time()
@@ -106,28 +107,27 @@ def main(
 				results = defaultdict(list)
 
 				io_utils.star_echo("working on feature: {f}".format(f=feature_type))
-
-				for i in tqdm.tqdm(range(num_trials)):
-
-					trn_idx, test_idx = train_test_split(obs_index ,random_state = rng)
-					train_ds = {i:converted_DataSet[i] for i in trn_idx}
-					test_ds = {i:converted_DataSet[i] for i in test_idx}
-					X_train, y_train = dataset_utils.make_numpy_dataset(train_ds,feature_type, numScales_v, maxMoment_v, central_v,
+				X, y = dataset_utils.make_numpy_dataset(converted_DataSet,feature_type, numScales_v, maxMoment_v, central_v,
 						numScales_e, maxMoment_e, central_e)
-					X_test, y_test  = dataset_utils.make_numpy_dataset(test_ds,feature_type, numScales_v, maxMoment_v, central_v,
-						numScales_e, maxMoment_e, central_e)
+				
+				for i, (train_idx, test_idx) in tqdm.tqdm(enumerate(splitter.split(X,y)),total = splitter.get_n_splits()):
 
+					X_train, y_train = X[train_idx,:],y[train_idx]
+					X_test, y_test = X[test_idx,:], y[test_idx]
+					
 
-					classifier = GridSearchCV(model, param_grid)
+					classifier = GridSearchCV(model, param_grid,scoring = score)
 					classifier.fit(X_train, y_train)
 					preds = classifier.best_estimator_.predict(X_test)
 					
-					
+					# print(preds)
 					acc = accuracy_score(y_test, preds)
+					bal_acc = balanced_accuracy_score(y_test,preds)
 					tn, fp, fn, tp = confusion_matrix(y_test, preds,labels = [0,1]).ravel()
 					results['iter'].append(i)
 					results['feature'].append(feature_type)
 
+					results['bal_acc'].append(bal_acc)
 					results['acc'].append(acc)
 					results['tp'].append(tp)
 					results['tn'].append(tn)

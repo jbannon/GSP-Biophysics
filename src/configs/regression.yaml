@@ -1,10 +1,11 @@
 EXPERIMENT_PARAMS:
  
-  num_trials: 100
+  num_trials: 10
   test_pct: 0.75
   rngseed: 12345
-  short_size: 32
-  long_size: 1024
+  DW_size: 32
+  DWLG_size: 64
+  default_size: 1024
 
   model_list: ['Ridge','OLS','RFR']
   prefix: 'regr'

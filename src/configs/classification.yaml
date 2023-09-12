@@ -3,13 +3,14 @@ EXPERIMENT_PARAMS:
   num_trials: 50
   test_pct: 0.75
   rngseed: 12345
-  short_size: 32
-  long_size: 1024
+  DW_size: 32
+  DWLG_size: 64
+  default_size: 1024
 
   model_list: ['SVC']
   prefix: 'clf'
   exp_type: "classification"
-  score: 'accuracy_score'
+  score: 'balanced_accuracy'
   output_path: "../results"
   tdc_path: "../data/raw/tdc/"
 

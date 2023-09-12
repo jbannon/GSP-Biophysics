@@ -27,11 +27,8 @@ class WaveletMomentTransform:
 	def computeTransform(self,
 		X:np.ndarray) -> np.ndarray:
 
-
 		
-		M =np.argwhere(np.std(X,axis=0)==0)
-		
-		PsiX= self.H @ X
+		PsiX = self.H @ X
 		
 		
 		exponents = np.arange(1,self.maxMoment+1)
@@ -58,27 +55,31 @@ class WaveletMomentTransform:
 				sigma[np.where(sigma==0)] = 1
 
 				
-				moment_coeffs = (PsiX - mu)/sigma
-
-				if np.isnan(moment_coeffs).any():
-				
-					idx = np.argwhere(np.isnan(moment_coeffs))
-					print('nan issue')
-
-
-					# print(PsiX.shape)
-					# print(sigma.shape)
-					# print(mu.shape)
-					
-								
-
+				moment_coeffs = (PsiX - mu)/sigma								
 				moment_coeffs = np.sum(np.power(np.abs(moment_coeffs),exp),axis=1)
 
 			else:
-
+				# print("no central")
 				moment_coeffs = np.sum(np.power(np.abs(PsiX),exp),axis=1)
+			
+
+			if np.isnan(moment_coeffs).any():
+				
+				print(X)
+				print(exp)
+				print(moment_coeffs)
+				# print(PsiX)
+				print(self.H)
+				print(self.W)
+				print(self.W.shape)
+				print(np.sum(self.W,axis=1))
+				print(np.sqrt(np.sum(self.W,axis=1)))
+				sys.exit(1)
 				
 			coeffs = np.hstack([coeffs, moment_coeffs]) if coeffs.size else moment_coeffs
+
+					
+
 
 		return coeffs.flatten()
 
@@ -95,7 +96,7 @@ class DiffusionWMT(WaveletMomentTransform):
 
 		N = adjacency_matrix.shape[0]
 		D_invsqrt = np.diag(1/np.sqrt(np.sum(self.W,axis =1)))
-		# D_sqrt = np.sqrt(D)
+		
 		A = D_invsqrt @ self.W @ D_invsqrt
 
 		T = 0.5*(np.eye(A.shape[0]) + A)

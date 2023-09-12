@@ -1,7 +1,7 @@
 from collections import defaultdict
 
 from rdkit import DataStructs
-
+from rdkit.Chem import MACCSkeys
 
 from typing import List, Tuple, Dict, NamedTuple
 
@@ -22,7 +22,11 @@ import os
 
 import GraphTransforms as gt 
 
-FINGERPRINT_FEATURES = ['morgan_short','morgan_long','top_short','top_long','bit_short','bit_long']
+FINGERPRINT_FEATURES = ['morgan_DW','morgan_LG','morgan_DEF','atomPair_DW','atomPair_LG','atomPair_DEF','MACCSKey']
+
+
+
+
 
 GSP_FEATURES = ["DW","DWLG"]
 
@@ -121,44 +125,57 @@ def make_adj_mat(
 
 def make_dataset(
 	df:pd.DataFrame,
-	short_size:int = 32,
-	long_size:int = 1024
+	DW_size:int = 32,
+	LG_size:int = 64,
+	default_size:int = 1024
 	) -> None:	
 
 	
 	dataset = {}
 
 
-	bit_short_gen = AllChem.GetRDKitFPGenerator(fpSize=short_size)
-	bit_long_gen = AllChem.GetRDKitFPGenerator(fpSize = long_size)
+	morgan_DW_gen = AllChem.GetMorganGenerator(fpSize = DW_size )
+	morgan_DWLG_gen = AllChem.GetMorganGenerator(fpSize = LG_size )
+	morgan_def_gen = AllChem.GetMorganGenerator(fpSize = default_size)
 
-	top_short_gen = AllChem.GetTopologicalTorsionGenerator(fpSize = short_size)
-	top_long_gen = AllChem.GetTopologicalTorsionGenerator(fpSize = long_size)
 
-	morgan_short_gen = AllChem.GetMorganGenerator(fpSize = short_size )
-	morgan_long_gen = AllChem.GetMorganGenerator(fpSize = long_size)
+	atomPair_DW_gen = AllChem.GetMorganGenerator(fpSize = DW_size )
+	atomPair_DWLG_gen = AllChem.GetMorganGenerator(fpSize = LG_size )
+	atomPair_def_gen = AllChem.GetMorganGenerator(fpSize = default_size)
+
+	
+
+	
 
 
 	for idx, row in df.iterrows():
 		
 
 		mol_graph = mol.smiles2graph(row['Drug'])
+
 		if mol_graph['num_nodes'] <= 4:
+			continue
+		adjacency_matrix = make_adj_mat(mol_graph)
+
+		G  = nx.from_numpy_array(adjacency_matrix)
+		if not nx.is_connected(G):
+			# print(row)
 			continue
 		molecule = Chem.MolFromSmiles(row['Drug'])
 		
-		adjacency_matrix = make_adj_mat(mol_graph)
 		
-		bit_short, bit_long, top_short, top_long, morgan_short, morgan_long = [np.array([]) for i in range(6)]
 		
-		DataStructs.ConvertToNumpyArray(bit_short_gen.GetFingerprint(molecule),bit_short)
-		DataStructs.ConvertToNumpyArray(bit_long_gen.GetFingerprint(molecule),bit_long)
+		morgan_DW, morgan_LG, morgan_DEF, ap_DW, ap_LG, ap_DEF, maccsKey = [np.array([]) for i in range(7)]
+		
+		DataStructs.ConvertToNumpyArray(morgan_DW_gen.GetFingerprint(molecule),morgan_DW)
+		DataStructs.ConvertToNumpyArray(morgan_DWLG_gen.GetFingerprint(molecule),morgan_LG)
+		DataStructs.ConvertToNumpyArray(morgan_def_gen.GetFingerprint(molecule),morgan_DEF)
+		
 
-		DataStructs.ConvertToNumpyArray(top_short_gen.GetFingerprint(molecule),top_short)
-		DataStructs.ConvertToNumpyArray(top_long_gen.GetFingerprint(molecule),top_long)
-
-		DataStructs.ConvertToNumpyArray(morgan_short_gen.GetFingerprint(molecule),morgan_short)
-		DataStructs.ConvertToNumpyArray(morgan_long_gen.GetFingerprint(molecule),morgan_long)
+		DataStructs.ConvertToNumpyArray(atomPair_DW_gen.GetFingerprint(molecule),ap_DW)
+		DataStructs.ConvertToNumpyArray(atomPair_DWLG_gen.GetFingerprint(molecule),ap_LG)
+		DataStructs.ConvertToNumpyArray(atomPair_def_gen.GetFingerprint(molecule), ap_DEF)
+		DataStructs.ConvertToNumpyArray(MACCSkeys.GenMACCSKeys(molecule), maccsKey)
 
 		
 		
@@ -172,19 +189,20 @@ def make_dataset(
 			'node_feat': mol_graph['node_feat'],
 			'num_nodes': mol_graph['num_nodes'],
 			'adj_mat':adjacency_matrix,
-			'bit_short': bit_short,
-			'bit_long': bit_long,
-			'top_short': top_short,
-			'top_long': top_long,
-			'morgan_short': morgan_short,
-			'morgan_long': morgan_long,
+			'morgan_DW': morgan_DW,
+			'morgan_LG': morgan_LG,
+			'morgan_DEF': morgan_DEF,
+			'atomPair_DW': ap_DW,
+			'atomPair_LG': ap_LG,
+			'atomPair_DEF': ap_DEF,
+			'MACCSKey': maccsKey,
 			'edge_feat': mol_graph['edge_feat'],
 			'linegraph': {'adj_mat':lg_adj_mat,
 						   'node_feat': lg_node_feat
 						  },
 			'y':row['Y']
 			}
-
+	
 	dataset = reset_dict_index(dataset)
 	return dataset
 

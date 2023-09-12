@@ -19,7 +19,7 @@ from sklearn.ensemble import RandomForestRegressor
 
 
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import train_test_split,GridSearchCV
+from sklearn.model_selection import train_test_split,GridSearchCV, KFold
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 
@@ -38,7 +38,7 @@ def main(
 	
 	print("\n")
 	
-	num_trials, test_pct, rngseed, short_size, long_size, model_list, prefix, exp_type, score, output_path,tdc_path = \
+	num_trials, test_pct, rngseed, DW_size, DWLG_size, default_size, model_list, prefix, exp_type, score, output_path,tdc_path = \
 	 	io_utils.unpack_parameters(config['EXPERIMENT_PARAMS'])
 
 	feature_type, standardize, numScales_v, maxMoment_v, central_v, numScales_e, maxMoment_e, central_e  = \
@@ -62,6 +62,8 @@ def main(
 
 
 	### process dataset to graph representations
+	splitter = KFold(n_splits = num_trials)
+
 	for dataset in datasets:
 		io_utils.star_echo("Working on {ds}".format(ds=dataset))
 
@@ -75,7 +77,7 @@ def main(
 		
 		start = time.time()
 		
-		converted_DataSet = dataset_utils.make_dataset(dataframe,short_size,long_size)
+		converted_DataSet = dataset_utils.make_dataset(dataframe,DW_size,DWLG_size,default_size)
 		obs_index = list(converted_DataSet.keys())
 
 		end = time.time()
@@ -105,11 +107,18 @@ def main(
 					standardize_features = False
 				else:
 					standardize_features = True
+				
+
 				model, param_grid = model_utils.make_model_and_param_grid(model_name, 
-					standardize_features,
+					 standardize_features,
 					 prefix, 
 					 config['MODEL_PARAMS'][model_name.upper()],
 					 rng)
+
+				X, y = dataset_utils.make_numpy_dataset(converted_DataSet,feature_type, 
+						numScales_v, maxMoment_v, central_v,
+						numScales_e, maxMoment_e,central_e
+						)
 				
 				
 			
@@ -118,20 +127,10 @@ def main(
 
 				results = defaultdict(list)
 
-				for i in tqdm.tqdm(range(num_trials)):
+				for i, (train_idx, test_idx) in tqdm.tqdm(enumerate(splitter.split(X,y)),total = splitter.get_n_splits()):
 
-					trn_idx, test_idx = train_test_split(obs_index ,random_state = rng)
-					train_ds = {i:converted_DataSet[i] for i in trn_idx}
-					test_ds = {i:converted_DataSet[i] for i in test_idx}
-
-					X_train, y_train = dataset_utils.make_numpy_dataset(train_ds,feature_type, 
-						numScales_v, maxMoment_v, central_v,
-						numScales_e, maxMoment_e,central_e
-						)
-					X_test, y_test  = dataset_utils.make_numpy_dataset(test_ds,feature_type,
-						numScales_v, maxMoment_v, central_v,
-						numScales_e, maxMoment_e,central_e
-						)
+					X_train, y_train = X[train_idx,:], y[train_idx]
+					X_test, y_test = X[test_idx,:], y[test_idx]
 
 
 					regressor = GridSearchCV(model, param_grid)

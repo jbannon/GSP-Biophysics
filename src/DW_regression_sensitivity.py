@@ -77,7 +77,7 @@ def main():
 	feature_type = 'DW'
 	for max_vertex_scale in range(1,MAX_VERTEX_SCALES):
 			for max_vertex_moment in range(1,MAX_VERTEX_MOMENTS):
-				for center_vertex_features in [True, False]:
+				for center_vertex_features in [False]:
 					io_utils.star_echo("\nWorking on:\n\tvertex scale {J}\n\tvertex moment {p}\n\tcentering: {c}\n".format(J=max_vertex_scale,p = max_vertex_moment, c= center_vertex_features))
 					for i in tqdm.tqdm(range(num_trials)):
 
@@ -93,6 +93,17 @@ def main():
 							max_vertex_scale, max_vertex_moment, center_vertex_features,
 							numScales_e = None, maxMoment_e = None, central_e = None
 							)
+
+
+						print(X_train)
+						print(X_train.shape)
+						print(np.isnan(X_train).any())
+						print(np.where(np.isnan(X_train)))
+
+						print(X_test)
+						print(X_test.shape)
+						print(np.isnan(X_test).any())
+						sys.exit(1)
 						
 						cv_model = GridSearchCV(model, grid)
 						cv_model.fit(X_train, y_train)
