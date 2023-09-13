@@ -13,7 +13,7 @@ import numpy as np
 import pickle
 import pandas as pd
 
-from sklearn.linear_model import  LogisticRegression
+from sklearn.linear_model import  LogisticRegression, RidgeClassifier
 from sklearn.svm import LinearSVC, SVC
 from sklearn.preprocessing import  StandardScaler
 
@@ -56,22 +56,23 @@ def main():
 
 	# model_tuple = (prefix,Ridge())
 
-	model_tuples = {'SVC':(prefix, LinearSVC()), 
-		'RBF': (prefix, SVC(kernel = 'rbf',gamma = 'scale')), 
-		'LR':(prefix, LogisticRegression()),
-		'GB':(prefix, GradientBoostingClassifier()),
-		'RFC':(prefix,RandomForestClassifier())}
+	model_tuples = {'SVC':(prefix, LinearSVC(class_weight = 'balanced')), 
+		'RBF': (prefix, SVC(kernel = 'rbf',gamma = 'scale',class_weight = 'balanced')),
+		'LR':(prefix, LogisticRegression(class_weight = 'balanced')),
+		'RC':(prefix, RidgeClassifier(class_weight = 'balanced')),
+		'RFC':(prefix,RandomForestClassifier(class_weight = 'balanced'))
+		}
 
 
-	svc_grid = {prefix + "__C":[10**i for i in range(-6,1)]}
-	lr_grid = {prefix + "__C":[10**i for i in range(-6,-4)]}
-	gb_grid = {prefix + "__learning_rate":[0.1,0.2]}
+	svc_grid = {prefix + "__C":np.arange(0.1,1,0.1)}
+	lr_grid = {prefix + "__C":np.arange(0.1,1,0.1)}
+	# gb_grid = {prefix + "__learning_rate":[0.1,0.2]}
 	rfc_grid = {prefix + "__n_estimators":[20,100]}
 	
 
-	scale_pre = [('scaler',StandardScaler())]
-	simple_tuples = {k:Pipeline(scale_pre + [model_tuples[k]]) for k in model_tuples.keys()}
-
+	# scale_pre = [('scaler',StandardScaler())]
+	# simple_tuples = {k:Pipeline(scale_pre + [model_tuples[k]]) for k in model_tuples.keys()}
+	simple_tuples = {k:Pipeline([model_tuples[k]]) for k in model_tuples.keys()}
 
 	# simple_tuples = {k:Pipeline(scale_pre + [model_tuples[k]]) for k in model_tuples.keys()}
 	# pca_tuples = {k:Pipeline(pca_pre + [model_tuples[k]]) for k in model_tuples.keys()}
@@ -96,7 +97,7 @@ def main():
 	short_name = dataset_utils.dataset_to_short_name[dataset]
 
 
-	model_names = ['SVC','RBF','LR','GB','RFC']
+	model_names = ['SVC','RBF','LR','RC','RFC']
 	
 	rng = np.random.RandomState(1234)
 	
@@ -117,7 +118,8 @@ def main():
 			dataframe = data.get_approved_set()
 			# splitter = LeaveOneOut()
 		
-		num_trials = 10
+		num_trials = 20
+
 		splitter = StratifiedKFold(n_splits = num_trials,shuffle = True, random_state = rng)
 		
 		data_set = dataset_utils.make_dataset(dataframe,short_size,long_size)
@@ -142,12 +144,12 @@ def main():
 								grid = svc_grid
 							elif model == 'LR':
 								grid = lr_grid
-							elif model == 'GB':
-								grid = gb_grid
+							elif model == 'RC':
+								grid = {}
 							elif model == 'RFC':
 								grid = rfc_grid
 
-							for i, (train_idx, test_idx) in tqdm.tqdm(enumerate(splitter.split(X,y)),leave=False):
+							for i, (train_idx, test_idx) in tqdm.tqdm(enumerate(splitter.split(X,y)),total = splitter.get_n_splits(),leave=False):
 								
 								X_train, y_train = X[train_idx,:], y[train_idx]
 								X_test, y_test = X[test_idx,:], y[test_idx]
